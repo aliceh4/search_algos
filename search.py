@@ -31,10 +31,10 @@ def bfs(maze):
     @return path: a list of tuples containing the coordinates of each state in the computed path
     """
     queue = []
-    visited = set()
+    visited = set() # use a set to keep track of visited states
     queue.append([maze.start])
-    goal = maze.waypoints[0]
-    while queue:
+    goal = maze.waypoints[0] # only one waypoint...
+    while queue: # while our queue is not empty
         cur_path = queue.pop(0)
         cur_row, cur_col = cur_path[-1]
         if (cur_row, cur_col) in visited:
@@ -44,7 +44,7 @@ def bfs(maze):
             return cur_path
         for item in maze.neighbors(cur_row, cur_col):
             if item not in visited:
-                queue.append(cur_path + [item])
+                queue.append(cur_path + [item]) # will keep on appending to cur_path
     return []
      
 
@@ -56,35 +56,6 @@ def astar_single(maze):
 
     @return path: a list of tuples containing the coordinates of each state in the computed path
     """
-    """
-    goalx, goaly = maze.waypoints[0]
-    startx, starty = maze.start
-    pq = queue.PriorityQueue()
-    visited = {}
-
-    # our heuristic is manhattan distance
-    cost = abs(startx - goalx) + abs(starty - goaly)
-
-    pq.put((cost, [(startx, starty)]))
-    while not pq.empty():
-        cur_path = pq.get()[1]
-        x, y = cur_path[-1]
-        if (x, y) in visited:
-            continue
-        cur_cost = abs(x - goalx) + abs(y - goaly) + len(cur_path) - 1
-        visited[(x, y)] = cur_cost
-        if (x, y) == (goalx, goaly):
-            return cur_path
-        for item in maze.neighbors(x, y):
-            new_cost = abs(item[0] - goalx) + abs(item[1] - goaly) + len(cur_path) - 1
-            if item not in visited:
-                pq.put((new_cost, cur_path + [item]))
-            else:
-                # if a node that’s already in the explored set found, test to see if the new h(n)+g(n) is smaller than the old one.
-                if visited[item] > new_cost:
-                    visited[item] = new_cost
-                    pq.put((new_cost, cur_path + [item]))
-    return [] """
     start = maze.start
     end = maze.waypoints[0]
     return get_cost(maze, start, end)
@@ -114,7 +85,7 @@ def astar_corner(maze):
     @return path: a list of tuples containing the coordinates of each state in the computed path
         """
     return astar_multiple(maze)
-    
+
 def astar_multiple(maze):
     """
     Runs A star for part 4 of the assignment in the case where there are
@@ -165,7 +136,6 @@ def astar_multiple(maze):
                 listx.remove(n)
                 next_state.not_visited = tuple(listx)
 
-                #next_state.not_visited.remove(n)
             visited[(n_row, n_col)] = 0
             not_visited_list[n] = len(next_state.not_visited)
             mst_weights = get_MST(maze, cur_state.not_visited, heuristic_list)
@@ -200,7 +170,6 @@ def get_cost(maze, start, end):
             if item not in visited:
                 pq.put((new_cost, cur_path + [item]))
             else:
-                # if a node that’s already in the explored set found, test to see if the new h(n)+g(n) is smaller than the old one.
                 if visited[item] > new_cost:
                     visited[item] = new_cost
                     pq.put((new_cost, cur_path + [item]))
@@ -242,7 +211,7 @@ def print_path(maze, path, state, visited):
         ret_path += path[(goals_list[i], goals_list[i+1])][:-1]
     start = maze.start
     ret_path.append(start)
-    ret_path[::-1]
+    ret_path = ret_path[::-1]
     return ret_path
 
 def fast(maze):
