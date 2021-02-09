@@ -146,16 +146,28 @@ def astar_multiple(maze):
                 next_state.total_cost += len(next_state.not_visited)
             cur_path.put(next_state)
 
-    final_path = get_path(maze, edge_list, cur_state)
-    return final_path
+    # format final output correctly
+    position_list = []
+    while cur_state: # keep on moving from current state to end
+        position_list.append(cur_state.position)
+        cur_state = cur_state.prev
+    total_len = len(position_list) - 1
+
+    final_path = []
+    for i in range(total_len):
+        final_path += edge_list[(position_list[i], position_list[i+1])][:-1] # reverse order b/c starting from back
+    final_path.append(maze.start)
+    return final_path[::-1] # reverse so we return from start to end
 
 """
-The following are helper functions for astar_multiple
+The following are helper functions for astar functions
 """
 
 def get_length(maze, start, end):
     """
     Returns the path to be taken from start to end (used in astar_single)
+
+    Note that our heuristic here is Manhattan Distance
     """
     pq = queue.PriorityQueue()
     visited = {}
@@ -193,9 +205,9 @@ def get_MST(maze, goals, heuristic_list):
     start = goals[0] # our first goal is our start
     visited = {}
     visited[start] = True # now we have visited this position
-    edges = []
     weights = 0
-    while len(visited) < len(goals):
+
+    while len(visited) != len(goals): # check if we have visited every node or not
         q = queue.PriorityQueue()
         for v in visited:
             for g in goals:
@@ -204,27 +216,10 @@ def get_MST(maze, goals, heuristic_list):
                 new_edge = (v, g) # create a new edge
                 new_cost = heuristic_list[new_edge] - 2 # don't forget to subtract 2
                 q.put((new_cost, new_edge))
-        add_edge = q.get()
-        edges.append(add_edge[1])
-        weights += add_edge[0]
+        add_edge = q.get() # get highest priority "edge"
+        weights += add_edge[0] # add the weight
         visited[add_edge[1][1]] = True
     return weights
-
-def get_path(maze, path, state):
-    """
-    maze, edge_list, cur_state, visited
-    """
-    position_list = []
-    while state: # keep on moving from current state to end
-        position_list.append(state.position)
-        state = state.prev
-    total_len = len(position_list) - 1
-
-    final_path = []
-    for i in range(total_len):
-        final_path += path[(position_list[i], position_list[i+1])][:-1] # reverse order b/c starting from back
-    final_path.append(maze.start)
-    return final_path[::-1] # reverse so we return from start to end
 
 def fast(maze):
     """
