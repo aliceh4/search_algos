@@ -60,6 +60,7 @@ class Node:
         self.prev = None # our previous Node
         self.not_visited = [] # list of not visited nodes
 
+    # add this function so our priority queue works correctly
     def __lt__(self, other):
         return self.total_cost < other.total_cost
 
@@ -111,11 +112,11 @@ def astar_multiple(maze):
 
     # initialize variables
     path = queue.PriorityQueue() # will contain nodes
-    weights = get_MST(maze, goals_left, heuristic_list)
+    weights = get_h(maze, goals_left, heuristic_list)
     
     startx, starty = maze.start
     sstate = Node(startx, starty, 0, weights) # create new node
-    sstate.not_visited = maze.waypoints
+    sstate.not_visited = list(maze.waypoints)
     path.put(sstate)
 
     # keep on iterating until there are no more goals left
@@ -133,11 +134,9 @@ def astar_multiple(maze):
             next_state.prev = cur_state
 
             if n in next_state.not_visited:
-                listx = list(next_state.not_visited) # turn to list so we can manipulate
-                listx.remove(n) # remove from not visited
-                next_state.not_visited = tuple(listx)
+                next_state.not_visited.remove(n)
 
-            weights = get_MST(maze, cur_state.not_visited, heuristic_list)
+            weights = get_h(maze, cur_state.not_visited, heuristic_list)
             next_state.total_cost = n_cost + weights + len(next_state.not_visited) # f = g + h
             path.put(next_state)
 
@@ -146,7 +145,6 @@ def astar_multiple(maze):
     while cur_state: # keep on moving from current state to end
         position_list.append(cur_state.position)
         cur_state = cur_state.prev
-
     final_path = []
     for i in range(len(position_list) - 1):
         final_path += edge_list[(position_list[i], position_list[i+1])][:-1] # reverse order b/c starting from back
@@ -185,22 +183,22 @@ def get_path(maze, start, end):
             return cur_path
 
         # look at neighbors and continue iterating
-        for item in maze.neighbors(cur_row, cur_col):
-            new_cost = manhattan_distance(item[0], item[1], result_row, result_col) + len(cur_path) - 1
-            if item not in visited:
-                pq.put((new_cost, cur_path + [item]))
+        for n in maze.neighbors(cur_row, cur_col):
+            new_cost = manhattan_distance(n[0], n[1], result_row, result_col) + len(cur_path) - 1
+            if n not in visited:
+                pq.put((new_cost, cur_path + [n]))
             else:
                 # need to replace original in visited if new_cost is lower
-                if visited[item] > new_cost:
-                    visited[item] = new_cost
-                    pq.put((new_cost, cur_path + [item]))
+                if visited[n] > new_cost:
+                    visited[n] = new_cost
+                    pq.put((new_cost, cur_path + [n]))
     return []
 
 def manhattan_distance(startx, starty, goalx, goaly):
     return abs(startx - starty) + abs(starty - goaly)
 
 
-def get_MST(maze, goals, heuristic_list):
+def get_h(maze, goals, heuristic_list):
     if len(goals) == 0: # if there are no goals
         return 0
 
