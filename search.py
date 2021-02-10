@@ -30,21 +30,23 @@ def bfs(maze):
 
     @return path: a list of tuples containing the coordinates of each state in the computed path
     """
+    # reference: https://www.geeksforgeeks.org/breadth-first-search-or-bfs-for-a-graph/
     queue = []
-    visited = set() # use a set to keep track of visited states (don't need a dict yet)
+    visited = set() # use a set to keep track of visited states
     queue.append([maze.start])
     goal = maze.waypoints[0] # only one waypoint
     while queue: # while our queue is not empty
-        cur_path = queue.pop(0)
-        cur_row, cur_col = cur_path[-1]
+        path = queue.pop(0)
+        cur_row, cur_col = path[-1] # get last position in path
         if (cur_row, cur_col) in visited:
             continue
         visited.add((cur_row, cur_col))
         if ((cur_row, cur_col) == goal):
-            return cur_path
+            return path
         for item in maze.neighbors(cur_row, cur_col):
             if item not in visited:
-                queue.append(cur_path + [item]) # will keep on appending to cur_path
+                queue.append(path + [item]) # will keep on appending to cur_path
+    # return empty list if unsuccessful
     return []
      
 
@@ -57,8 +59,8 @@ def astar_single(maze):
     @return path: a list of tuples containing the coordinates of each state in the computed path
     """
     start = maze.start
-    end = maze.waypoints[0]
-    return get_length(maze, start, end)
+    end = maze.waypoints[0] # NOTE: only one waypoint
+    return get_path(maze, start, end)
 
 
 class Node:
@@ -82,7 +84,7 @@ def astar_corner(maze):
     @param maze: The maze to execute the search on.
 
     @return path: a list of tuples containing the coordinates of each state in the computed path
-        """
+    """
     return astar_multiple(maze)
 
 def astar_multiple(maze):
@@ -94,67 +96,61 @@ def astar_multiple(maze):
 
     @return path: a list of tuples containing the coordinates of each state in the computed path
     """
+    # initialize our goals list and add start (treat start as a waypoint)
     start = maze.start
-    goals_left = maze.waypoints
-    goals_left = list(goals_left) # convert to list so we can insert... tuple can't do insert
+    goals_left = list(maze.waypoints) # convert to list so we can insert... tuple can't do insert
     goals_left.insert(0, start)
+
+    # iterate through our waypoints and update our edge list and heuristic list
     edge_list = {}
     heuristic_list = {}
-
-    # iterate through our waypoints (including start now)
     for i in goals_left:
         for j in goals_left:
             if i != j:
-                construct_path = get_length(maze, i, j) # get length from one waypoint to another
-                edge_list[(i, j)] = construct_path # edge list for waypoint i to waypoint j
-                heuristic_list[(i, j)] = len(construct_path) # heuristic_list will be the length of the path
+                new_path = get_path(maze, i, j) # get length from one waypoint to another
+                edge_list[(i, j)] = new_path # edge list for waypoint i to waypoint j
+                heuristic_list[(i, j)] = len(new_path) # heuristic_list will be the length of the path
 
     # initialize variables
-    not_visited_list = {}
-    visited = {}
-    cur_path = queue.PriorityQueue() # will contain nodes
-    mst_weights = get_MST(maze, goals_left, heuristic_list)
+    path = queue.PriorityQueue() # will contain nodes
+    weights = get_MST(maze, goals_left, heuristic_list)
+    
     startx, starty = maze.start
-    start_state = Node(startx, starty, 0, mst_weights) # create new node
-    start_state.not_visited = maze.waypoints
-
-    cur_path.put(start_state)
-    not_visited_list[(startx, startx)] = len(start_state.not_visited)
+    sstate = Node(startx, starty, 0, weights) # create new node
+    sstate.not_visited = maze.waypoints
+    path.put(sstate)
 
     # keep on iterating until there are no more goals left
     while len(goals_left):
-        cur_state = cur_path.get() # get the highest priority item
-        if not cur_state.not_visited: # if we have visited everything
+        cur_state = path.get() # get the highest priority item
+        if len(cur_state.not_visited) == 0:
             break
         for n in cur_state.not_visited:
+            n_cost = cur_state.cost + heuristic_list[(cur_state.position, n)] - 1 # calculate the cost using our already initialized heuristic list
             n_row, n_col = n
-            n_cost = cur_state.cost + heuristic_list[(cur_state.position, n)] - 1 # subtract starting position
+
+            # initialize our 'next' variable
             next_state = Node(n_row, n_col, n_cost, 0)
-            next_state.prev = cur_state
             next_state.not_visited = deepcopy(cur_state.not_visited)
+            next_state.prev = cur_state
+
             if n in next_state.not_visited:
                 listx = list(next_state.not_visited) # turn to list so we can manipulate
                 listx.remove(n) # remove from not visited
                 next_state.not_visited = tuple(listx)
 
-            visited[(n_row, n_col)] = 0
-            not_visited_list[n] = len(next_state.not_visited)
-            mst_weights = get_MST(maze, cur_state.not_visited, heuristic_list)
-            next_state.total_cost = n_cost + mst_weights # update the total cost for next_state
-            goal_count = len(goals_left) - 1
-            if goal_count:
-                next_state.total_cost += len(next_state.not_visited)
-            cur_path.put(next_state)
+            weights = get_MST(maze, cur_state.not_visited, heuristic_list)
+            next_state.total_cost = n_cost + weights + len(next_state.not_visited) # f = g + h
+            path.put(next_state)
 
     # format final output correctly
     position_list = []
     while cur_state: # keep on moving from current state to end
         position_list.append(cur_state.position)
         cur_state = cur_state.prev
-    total_len = len(position_list) - 1
 
     final_path = []
-    for i in range(total_len):
+    for i in range(len(position_list) - 1):
         final_path += edge_list[(position_list[i], position_list[i+1])][:-1] # reverse order b/c starting from back
     final_path.append(maze.start)
     return final_path[::-1] # reverse so we return from start to end
@@ -163,7 +159,7 @@ def astar_multiple(maze):
 The following are helper functions for astar functions
 """
 
-def get_length(maze, start, end):
+def get_path(maze, start, end):
     """
     Returns the path to be taken from start to end (used in astar_single)
 
@@ -177,18 +173,26 @@ def get_length(maze, start, end):
     pq.put((cost, [(start_row, start_col)]))
     while not pq.empty():
         cur_path = pq.get()[1]
-        cur_row, cur_col = cur_path[-1]
+        cur_row, cur_col = cur_path[len(cur_path) - 1]
+
+        # If we've already visited this location
         if (cur_row, cur_col) in visited:
             continue
-        cur_cost = manhattan_distance(cur_row, cur_col, result_row, result_col) + len(cur_path) - 1
+
+        cur_cost = manhattan_distance(cur_row, cur_col, result_row, result_col) + len(cur_path) - 1 # f = h + g
         visited[(cur_row, cur_col)] = cur_cost
+
+        # We have reached our goal, so return path
         if (cur_row, cur_col) == (result_row, result_col):
             return cur_path
+
+        # look at neighbors and continue iterating
         for item in maze.neighbors(cur_row, cur_col):
             new_cost = manhattan_distance(item[0], item[1], result_row, result_col) + len(cur_path) - 1
             if item not in visited:
                 pq.put((new_cost, cur_path + [item]))
             else:
+                # need to replace original in visited if new_cost is lower
                 if visited[item] > new_cost:
                     visited[item] = new_cost
                     pq.put((new_cost, cur_path + [item]))
@@ -199,7 +203,6 @@ def manhattan_distance(startx, starty, goalx, goaly):
 
 
 def get_MST(maze, goals, heuristic_list):
-    # use Prims method
     if not len(goals): # if there are no goals
         return 0
     start = goals[0] # our first goal is our start
@@ -213,12 +216,12 @@ def get_MST(maze, goals, heuristic_list):
             for g in goals:
                 if visited.get(g) == True:
                     continue
-                new_edge = (v, g) # create a new edge
-                new_cost = heuristic_list[new_edge] - 2 # don't forget to subtract 2
+                new_edge = (v, g) # create a new "edge" between two waypoints
+                new_cost = heuristic_list[new_edge] - 2
                 q.put((new_cost, new_edge))
-        add_edge = q.get() # get highest priority "edge"
-        weights += add_edge[0] # add the weight
-        visited[add_edge[1][1]] = True
+        w, e = q.get() # get highest priority "edge"
+        weights += w # add the weight
+        visited[e[1]] = True
     return weights
 
 def fast(maze):
@@ -229,7 +232,6 @@ def fast(maze):
 
     @return path: a list of tuples containing the coordinates of each state in the computed path
     """
-    # TODO?? 
+    # TODO?
     return []
     
-            
