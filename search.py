@@ -37,32 +37,18 @@ def bfs(maze):
     goal = maze.waypoints[0] # only one waypoint
     while queue: # while our queue is not empty
         path = queue.pop(0)
-        cur_row, cur_col = path[-1] # get last position in path
-        if (cur_row, cur_col) in visited:
+        row, col = path[len(path) - 1] # get last position in path
+        if (row, col) in visited:
             continue
-        visited.add((cur_row, cur_col))
-        if ((cur_row, cur_col) == goal):
+        visited.add((row, col))
+        if ((row, col) == goal):
             return path
-        for item in maze.neighbors(cur_row, cur_col):
-            if item not in visited:
-                queue.append(path + [item]) # will keep on appending to cur_path
+        for n in maze.neighbors(row, col):
+            if n not in visited:
+                queue.append(path + [n]) # will keep on appending to cur_path
     # return empty list if unsuccessful
     return []
      
-
-def astar_single(maze):
-    """
-    Runs A star for part 2 of the assignment.
-
-    @param maze: The maze to execute the search on.
-
-    @return path: a list of tuples containing the coordinates of each state in the computed path
-    """
-    start = maze.start
-    end = maze.waypoints[0] # NOTE: only one waypoint
-    return get_path(maze, start, end)
-
-
 class Node:
     """
     Create a Node class to make our data easier to keep track of/organize
@@ -76,6 +62,18 @@ class Node:
 
     def __lt__(self, other):
         return self.total_cost < other.total_cost
+
+def astar_single(maze):
+    """
+    Runs A star for part 2 of the assignment.
+
+    @param maze: The maze to execute the search on.
+
+    @return path: a list of tuples containing the coordinates of each state in the computed path
+    """
+    start = maze.start
+    end = maze.waypoints[0] # NOTE: only one waypoint
+    return get_path(maze, start, end)
 
 def astar_corner(maze):
     """
@@ -109,7 +107,7 @@ def astar_multiple(maze):
             if i != j:
                 new_path = get_path(maze, i, j) # get length from one waypoint to another
                 edge_list[(i, j)] = new_path # edge list for waypoint i to waypoint j
-                heuristic_list[(i, j)] = len(new_path) # heuristic_list will be the length of the path
+                heuristic_list[(i, j)] = len(new_path) # heuristic_list will be the length of the path according to single astar search
 
     # initialize variables
     path = queue.PriorityQueue() # will contain nodes
@@ -203,25 +201,26 @@ def manhattan_distance(startx, starty, goalx, goaly):
 
 
 def get_MST(maze, goals, heuristic_list):
-    if not len(goals): # if there are no goals
+    if len(goals) == 0: # if there are no goals
         return 0
+
     start = goals[0] # our first goal is our start
     visited = {}
-    visited[start] = True # now we have visited this position
+    visited[start] = 1 # now we have visited this position
     weights = 0
 
     while len(visited) != len(goals): # check if we have visited every node or not
         q = queue.PriorityQueue()
         for v in visited:
             for g in goals:
-                if visited.get(g) == True:
+                if visited.get(g) == 1:
                     continue
                 new_edge = (v, g) # create a new "edge" between two waypoints
                 new_cost = heuristic_list[new_edge] - 2
                 q.put((new_cost, new_edge))
         w, e = q.get() # get highest priority "edge"
         weights += w # add the weight
-        visited[e[1]] = True
+        visited[e[1]] = 1
     return weights
 
 def fast(maze):
